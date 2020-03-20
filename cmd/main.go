@@ -1,9 +1,15 @@
 package main
 
 import (
-	"github.com/TimRazumov/Technopark-DB/app/test1"
+	"fmt"
+
+	"github.com/TimRazumov/Technopark-DB/app/test"
+
+    "github.com/rs/xid"
 )
 
 func main() {
-	test1.Hello()
+	test.Hello()
+
+	fmt.Println(xid.New().String())
 }
