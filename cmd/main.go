@@ -1,15 +1,11 @@
 package main
 
-import (
-	"fmt"
-
-	"github.com/TimRazumov/Technopark-DB/app/test"
-
-    "github.com/rs/xid"
-)
+import "github.com/TimRazumov/Technopark-DB/app/server"
 
 func main() {
-	test.Hello()
-
-	fmt.Println(xid.New().String())
+	srv := server.Server{
+		IP:   "127.0.0.1",
+		Port: 8080,
+	}
+	srv.Run()
 }
