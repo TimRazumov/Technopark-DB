@@ -1,12 +1,15 @@
 package http
 
 import (
+	"net/http"
+	"regexp"
+
 	"github.com/TimRazumov/Technopark-DB/app/models"
 	"github.com/TimRazumov/Technopark-DB/app/user"
 	"github.com/labstack/echo"
-	"log"
-	"net/http"
 )
+
+var nickNamePattern = regexp.MustCompile("^[A-Za-z0-9_.]+$")
 
 type Handler struct {
 	useCase user.UseCase
@@ -16,22 +19,20 @@ func CreateHandler(router *echo.Echo, useCase user.UseCase) {
 	handler := &Handler{
 		useCase: useCase,
 	}
-	router.POST("/user/:nickname/create", handler.Create)
-	router.GET("/user/:nickname/profile", handler.Get)
-	router.POST("/user/:nickname/profile", handler.Update)
+	router.POST("api/user/:nickname/create", handler.Create)
+	router.GET("api/user/:nickname/profile", handler.Get)
+	router.POST("api/user/:nickname/profile", handler.Update)
 }
 
 func (handler *Handler) Create(ctx echo.Context) error {
-	// TODO: валидация
-	var usr models.User
-	if err := ctx.Bind(&usr); err != nil {
+	// TODO: проверить будет ли пустым, если сразу записать ник
+	usr := models.User{NickName: ctx.Param("nickname")}
+	if err := ctx.Bind(&usr); err != nil || !nickNamePattern.MatchString(usr.NickName)  {
 		return ctx.NoContent(http.StatusBadRequest)
 	}
-	usr.NickName = ctx.Param("nickname")
-	log.Println("read user")
 	err := handler.useCase.Create(usr)
 	if err == nil {
-		return ctx.JSON(http.StatusOK, usr)
+		return ctx.JSON(http.StatusCreated, usr)
 	}
 	var existsUsers []models.User
 	existOnNickNameUser := handler.useCase.GetByNickName(usr.NickName)
@@ -50,7 +51,11 @@ func (handler *Handler) Create(ctx echo.Context) error {
 }
 
 func (handler *Handler) Get(ctx echo.Context) error {
-	usr := handler.useCase.GetByNickName(ctx.Param("nickname"))
+	nickName := ctx.Param("nickname")
+	if !nickNamePattern.MatchString(nickName) {
+		return ctx.NoContent(http.StatusNotFound)
+	}
+	usr := handler.useCase.GetByNickName(nickName)
 	if usr == nil {
 		return ctx.NoContent(http.StatusNotFound)
 	}
@@ -58,12 +63,12 @@ func (handler *Handler) Get(ctx echo.Context) error {
 }
 
 func (handler *Handler) Update(ctx echo.Context) error {
-	// TODO: валидация
+	nickName := ctx.Param("nickname")
 	var usr models.User
-	if err := ctx.Bind(&usr); err != nil {
+	if err := ctx.Bind(&usr); !nickNamePattern.MatchString(nickName) || err != nil {
 		return ctx.NoContent(http.StatusBadRequest)
 	}
-	usr.NickName = ctx.Param("nickname")
+	usr.NickName = nickName
 	err := handler.useCase.Update(&usr)
 	if err != nil {
 		return ctx.NoContent(err.Code)

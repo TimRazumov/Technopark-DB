@@ -27,8 +27,8 @@ func (repository *Repository) Create(usr models.User) *models.Error {
 
 func (repository *Repository) GetByNickName(nickname string) *models.User {
 	res, err := repository.DB.Query(
-		`SELECT nickname, fullname, email, about FROM users WHERE nickname = $1`, nickname)
-	if err != nil || !res.Next() {
+		`SELECT * FROM users WHERE nickname = $1`, nickname)
+	if err != nil {
 		return nil
 	}
 	defer res.Close()
@@ -44,9 +44,8 @@ func (repository *Repository) GetByNickName(nickname string) *models.User {
 }
 
 func (repository *Repository) GetByEmail(email string) *models.User {
-	res, err := repository.DB.Query(
-		`SELECT nickname, fullname, email, about FROM users WHERE email = $1`, email)
-	if err != nil || !res.Next() {
+	res, err := repository.DB.Query(`SELECT * FROM users WHERE email = $1`, email)
+	if err != nil {
 		return nil
 	}
 	defer res.Close()
@@ -82,8 +81,7 @@ func (repository *Repository) Update(newUsr *models.User) *models.Error {
 	if newUsr.About == "" {
 		newUsr.About = realUsr.About
 	}
-	res, err := repository.DB.Exec(
-		"UPDATE users SET fullname = $1, email = $2, about = $3 WHERE nickname = $4",
+	res, err := repository.DB.Exec("UPDATE users SET fullname = $1, email = $2, about = $3 WHERE nickname = $4",
 		newUsr.FullName, newUsr.Email, newUsr.About, newUsr.NickName)
 	if err != nil {
 		return &models.Error{Code: http.StatusConflict}

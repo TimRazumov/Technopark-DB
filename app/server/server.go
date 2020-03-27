@@ -4,7 +4,17 @@ import (
 	"fmt"
 	"log"
 
+	userHandler "github.com/TimRazumov/Technopark-DB/app/user/delivery/http"
 	userRepo "github.com/TimRazumov/Technopark-DB/app/user/repository"
+	userUseCase "github.com/TimRazumov/Technopark-DB/app/user/usecase"
+
+	forumHandler "github.com/TimRazumov/Technopark-DB/app/forum/delivery/http"
+	forumRepo "github.com/TimRazumov/Technopark-DB/app/forum/repository"
+	forumUseCase "github.com/TimRazumov/Technopark-DB/app/forum/usecase"
+
+	serviceHandler "github.com/TimRazumov/Technopark-DB/app/service/delivery/http"
+	serviceRepo "github.com/TimRazumov/Technopark-DB/app/service/repository"
+	serviceUseCase "github.com/TimRazumov/Technopark-DB/app/service/usecase"
 
 	"github.com/jackc/pgx"
 	"github.com/labstack/echo"
@@ -23,12 +33,14 @@ func (server *Server) GetAddr() string {
 var config = pgx.ConnConfig{
 	Host:     "localhost",
 	Port:     5432,
-	Database: "forums_db",
-	User:     "admin",
-	Password: "admin1234",
+	Database: "forum_db",
+	User:     "forum_user",
+	Password: "forum1234",
 }
 
 func (server *Server) Run() {
+	router := echo.New()
+	//repo
 	postgeClient, err := pgx.NewConnPool(
 		pgx.ConnPoolConfig{
 			ConnConfig:     config,
@@ -37,9 +49,18 @@ func (server *Server) Run() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	userRepo.CreateRepository(postgeClient)
+	usrRepo := userRepo.CreateRepository(postgeClient)
+	frmRepo := forumRepo.CreateRepository(postgeClient)
+	servRepo := serviceRepo.CreateRepository(postgeClient)
+	// usecase
+	usrUseCase := userUseCase.CreateUseCase(usrRepo)
+	frmUseCase := forumUseCase.CreateUseCase(usrRepo, frmRepo)
+	servUseCase := serviceUseCase.CreateUseCase(servRepo)
+	// delivery
+	userHandler.CreateHandler(router, usrUseCase)
+	forumHandler.CreateHandler(router, frmUseCase)
+	serviceHandler.CreateHandler(router, servUseCase)
 	// start
-	router := echo.New()
 	if err := router.Start(server.GetAddr()); err != nil {
 		log.Fatal(err)
 	}
