@@ -24,11 +24,34 @@ create unlogged table forums
     threads integer   not null default 0
 );
 
-create table user_forum
+create unlogged table user_forum
 (
     user_id     integer,
     forum_slug  citext,
     primary key (forum_slug, user_id)
 );
 
-create index on user_forum (forum_slug);
+create unlogged table threads
+(
+    id         serial      not null primary key,
+    title      varchar     not null,
+    author     citext      not null references users (nickname),
+    forum      citext      not null references forums (slug),
+    message    text,
+    votes      integer     default 0,
+    slug       citext      default null unique,   
+    created    timestamptz default current_timestamp
+);
+
+create unlogged table posts
+(
+    id         integer        not null primary key,
+    parent     integer        not null default 0,
+    author     citext         not null references users (nickname),
+    message    text,
+    is_edited  bool           not null default false,
+    forum      citext         not null references forums (slug),
+    thread     integer        not null references threads (id),
+    created    timestamptz    default current_timestamp,
+    path       integer array  default array[]::integer[]
+);
