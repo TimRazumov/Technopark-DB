@@ -6,18 +6,17 @@ import (
 )
 
 type UseCase struct {
-	serviceRepo  service.Repository
+	serviceRepo service.Repository
 }
 
-func CreateUseCase(serviceRepo  service.Repository) service.UseCase {
+func CreateUseCase(serviceRepo service.Repository) service.UseCase {
 	return &UseCase{serviceRepo: serviceRepo}
 }
 
-
 func (useCase *UseCase) Get() *models.Status {
-	return useCase.Get()
+	return useCase.serviceRepo.Get()
 }
 
 func (useCase *UseCase) Clear() *models.Error {
-	return useCase.Clear()
+	return useCase.serviceRepo.Clear()
 }

@@ -5,7 +5,9 @@ import (
 	"github.com/TimRazumov/Technopark-DB/app/models"
 	"github.com/TimRazumov/Technopark-DB/app/thread"
 	"github.com/TimRazumov/Technopark-DB/app/user"
+	"log"
 	"net/http"
+	"strconv"
 )
 
 type UseCase struct {
@@ -45,4 +47,23 @@ func (useCase *UseCase) GetBySlug(slug string) *models.Thread {
 
 func (useCase *UseCase) Update(newThrd *models.Thread) *models.Error {
 	return useCase.threadRepo.Update(newThrd)
+}
+
+func (useCase *UseCase) UpdateVote(thrdKey string, vt models.Vote) *models.Thread {
+	var thrd *models.Thread
+	if id, err := strconv.Atoi(thrdKey); err == nil {
+		thrd = useCase.threadRepo.GetByID(id)
+	} else {
+		thrd = useCase.threadRepo.GetBySlug(thrdKey)
+	}
+	if thrd == nil {
+		return nil
+	}
+	vt.Thread = thrd.ID
+	err := useCase.threadRepo.UpdateVote(vt)
+	if err != nil {
+		return nil
+	}
+	log.Println("found", vt.NickName)
+	return useCase.threadRepo.GetByID(thrd.ID)
 }

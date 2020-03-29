@@ -7,4 +7,5 @@ type Repository interface {
 	GetByID(id int) *models.Thread
 	GetBySlug(slug string) *models.Thread
 	Update(newThrd *models.Thread) *models.Error
+	UpdateVote(vt models.Vote) *models.Error
 }

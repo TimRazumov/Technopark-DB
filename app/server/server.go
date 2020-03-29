@@ -16,6 +16,10 @@ import (
 	threadRepo "github.com/TimRazumov/Technopark-DB/app/thread/repository"
 	threadUseCase "github.com/TimRazumov/Technopark-DB/app/thread/usecase"
 
+	postHandler "github.com/TimRazumov/Technopark-DB/app/post/delivery/http"
+	postRepo "github.com/TimRazumov/Technopark-DB/app/post/repository"
+	postUseCase "github.com/TimRazumov/Technopark-DB/app/post/usecase"
+
 	serviceHandler "github.com/TimRazumov/Technopark-DB/app/service/delivery/http"
 	serviceRepo "github.com/TimRazumov/Technopark-DB/app/service/repository"
 	serviceUseCase "github.com/TimRazumov/Technopark-DB/app/service/usecase"
@@ -56,16 +60,19 @@ func (server *Server) Run() {
 	usrRepo := userRepo.CreateRepository(postgeClient)
 	frmRepo := forumRepo.CreateRepository(postgeClient)
 	thrdRepo := threadRepo.CreateRepository(postgeClient)
+	pstRepo := postRepo.CreateRepository(postgeClient)
 	servRepo := serviceRepo.CreateRepository(postgeClient)
 	// usecase
 	usrUseCase := userUseCase.CreateUseCase(usrRepo)
 	frmUseCase := forumUseCase.CreateUseCase(usrRepo, frmRepo)
 	thrdUseCase := threadUseCase.CreateUseCase(usrRepo, frmRepo, thrdRepo)
+	pstUseCase := postUseCase.CreateUseCase(thrdRepo, pstRepo)
 	servUseCase := serviceUseCase.CreateUseCase(servRepo)
 	// delivery
 	userHandler.CreateHandler(router, usrUseCase)
 	forumHandler.CreateHandler(router, frmUseCase)
 	threadHandler.CreateHandler(router, thrdUseCase)
+	postHandler.CreateHandler(router, pstUseCase)
 	serviceHandler.CreateHandler(router, servUseCase)
 	// start
 	if err := router.Start(server.GetAddr()); err != nil {

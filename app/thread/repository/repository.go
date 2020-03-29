@@ -1,10 +1,9 @@
 package repository
 
 import (
-	"net/http"
-
 	"github.com/TimRazumov/Technopark-DB/app/models"
 	"github.com/TimRazumov/Technopark-DB/app/thread"
+	"net/http"
 
 	"github.com/jackc/pgx"
 )
@@ -105,10 +104,43 @@ func (repository *Repository) Update(newThrd *models.Thread) *models.Error {
 	if newMessage != "" {
 		newThrd.Message = newMessage
 	}
-	res, err := repository.DB.Exec("UPDATE threads SET title = $1, message = $2 WHERE id = $3",
+	res, err := repository.DB.Exec(`UPDATE threads SET title = $1, message = $2 WHERE id = $3`,
 		newThrd.Title, newThrd.Message, newThrd.ID)
 	if err != nil || res.RowsAffected() == 0 {
 		return &models.Error{Code: http.StatusNotFound}
+	}
+	return nil
+}
+
+func (repository *Repository) UpdateVote(vt models.Vote) *models.Error {
+	selectRes, err := repository.DB.Query(`SELECT voice FROM votes WHERE nickname = $1 AND thread = $2`,
+		vt.NickName, vt.Thread)
+	if err == nil && selectRes.Next() {
+		defer selectRes.Close()
+		var oldVoice int
+		err = selectRes.Scan(&oldVoice)
+		if err != nil {
+			return &models.Error{Code: http.StatusInternalServerError}
+		}
+		if oldVoice == vt.Voice {
+			return nil
+		}
+		res, err := repository.DB.Exec(`UPDATE votes SET voice = $1 WHERE nickname = $2 AND thread = $3`,
+			vt.Voice, vt.NickName, vt.Thread)
+		if err != nil || res.RowsAffected() == 0 {
+			return &models.Error{Code: http.StatusInternalServerError}
+		}
+		vt.Voice *= 2
+	} else {
+		res, err := repository.DB.Exec(`INSERT INTO votes (nickname, voice, thread) VALUES ($1, $2, $3)`,
+			vt.NickName, vt.Voice, vt.Thread)
+		if err != nil || res.RowsAffected() == 0 {
+			return &models.Error{Code: http.StatusInternalServerError}
+		}
+	}
+	res, err := repository.DB.Exec(`UPDATE threads SET votes = votes + $1 WHERE id = $2`, vt.Voice, vt.Thread)
+	if err != nil || res.RowsAffected() == 0 {
+		return &models.Error{Code: http.StatusInternalServerError}
 	}
 	return nil
 }

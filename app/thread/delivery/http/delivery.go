@@ -21,6 +21,7 @@ func CreateHandler(router *echo.Echo, useCase thread.UseCase) {
 	router.POST("api/forum/:slug/create", handler.Create)
 	router.GET("api/thread/:slug_or_id/details", handler.Get)
 	router.POST("api/thread/:slug_or_id/details", handler.Update)
+	router.POST("api/thread/:slug_or_id/vote", handler.UpdateVote)
 }
 
 func (handler *Handler) Create(ctx echo.Context) error {
@@ -70,6 +71,19 @@ func (handler *Handler) Update(ctx echo.Context) error {
 	err := handler.useCase.Update(&thrd)
 	if err != nil {
 		return ctx.JSON(err.Code, err.Message)
+	}
+	return ctx.JSON(http.StatusOK, thrd)
+}
+
+func (handler *Handler) UpdateVote(ctx echo.Context) error {
+	thrdKey := ctx.Param("slug_or_id")
+	var vt models.Vote
+	if err := ctx.Bind(&vt); err != nil || vt.Voice*vt.Voice != 1 {
+		return ctx.NoContent(http.StatusBadRequest)
+	}
+	thrd := handler.useCase.UpdateVote(thrdKey, vt)
+	if thrd == nil {
+		return ctx.JSON(http.StatusNotFound, "")
 	}
 	return ctx.JSON(http.StatusOK, thrd)
 }

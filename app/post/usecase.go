@@ -5,5 +5,5 @@ import (
 )
 
 type UseCase interface {
-	Create(postKey string, pst *[]models.Post) *models.Error
+	Create(thrdKey string, pst *[]models.Post) *models.Error
 }
