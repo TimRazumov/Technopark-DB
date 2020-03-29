@@ -33,7 +33,7 @@ func (repository *Repository) Create(thrd models.Thread, posts *[]models.Post) *
 		if _, has := parents[pst.Parent]; !has && pst.Parent != 0 {
 			parentPost := repository.GetByID(pst.Parent)
 			if parentPost == nil || parentPost.Thread != thrd.ID {
-				return &models.Error{Code: http.StatusConflict}
+				return models.CreateConflictPost()
 			}
 			parents[pst.Parent] = *parentPost
 		}
@@ -66,7 +66,7 @@ func (repository *Repository) Create(thrd models.Thread, posts *[]models.Post) *
 		res, err := transact.Exec(`INSERT INTO posts (id, parent, author, message, forum, thread, created, path) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 			pst.ID, pst.Parent, pst.Author, pst.Message, pst.Forum, pst.Thread, pst.Created, pq.Array(pst.Path))
 		if err != nil || res.RowsAffected() == 0 {
-			return &models.Error{Code: http.StatusNotFound}
+			return models.CreateNotFoundAuthorPost(pst.Author)
 		}
 		_, err = transact.Exec(`INSERT INTO user_forum (nickname, slug) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
 			pst.Author, thrd.Forum)

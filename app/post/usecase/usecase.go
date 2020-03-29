@@ -22,17 +22,15 @@ func (useCase *UseCase) Create(thrdKey string, posts *[]models.Post) *models.Err
 	if posts == nil {
 		return &models.Error{Code: http.StatusInternalServerError}
 	}
-	if len(*posts) == 0 {
-		return nil
-	}
 	var thrd *models.Thread
-	if id, err := strconv.Atoi(thrdKey); err == nil {
+	id, err := strconv.Atoi(thrdKey)
+	if err == nil {
 		thrd = useCase.threadRepo.GetByID(id)
 	} else {
 		thrd = useCase.threadRepo.GetBySlug(thrdKey)
 	}
 	if thrd == nil {
-		return &models.Error{Code: http.StatusNotFound}
+		return models.CreateNotFoundThreadPost(id)
 	}
 	return useCase.postRepo.Create(*thrd, posts)
 }

@@ -26,8 +26,7 @@ func (repository *Repository) Create(usr models.User) *models.Error {
 }
 
 func (repository *Repository) GetByNickName(nickname string) *models.User {
-	res, err := repository.DB.Query(
-		`SELECT * FROM users WHERE nickname = $1`, nickname)
+	res, err := repository.DB.Query(`SELECT * FROM users WHERE nickname = $1`, nickname)
 	if err != nil {
 		return nil
 	}
@@ -66,7 +65,7 @@ func (repository *Repository) Update(newUsr *models.User) *models.Error {
 	}
 	realUsr := repository.GetByNickName(newUsr.NickName)
 	if realUsr == nil {
-		return &models.Error{Code: http.StatusNotFound}
+		return models.CreateNotFoundUser(newUsr.NickName)
 	}
 	if newUsr.FullName == "" && newUsr.Email == "" && newUsr.About == "" {
 		*newUsr = *realUsr
@@ -84,7 +83,11 @@ func (repository *Repository) Update(newUsr *models.User) *models.Error {
 	res, err := repository.DB.Exec("UPDATE users SET fullname = $1, email = $2, about = $3 WHERE nickname = $4",
 		newUsr.FullName, newUsr.Email, newUsr.About, newUsr.NickName)
 	if err != nil {
-		return &models.Error{Code: http.StatusConflict}
+		conflictUsr := repository.GetByEmail(newUsr.Email)
+		if conflictUsr != nil {
+			return models.CreateConflictUser(conflictUsr.NickName)
+		}
+		return &models.Error{Code: http.StatusInternalServerError}
 	}
 	if res.RowsAffected() == 0 {
 		return &models.Error{Code: http.StatusNotFound}

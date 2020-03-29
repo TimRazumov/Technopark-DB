@@ -39,7 +39,7 @@ func (handler *Handler) Create(ctx echo.Context) error {
 		}
 		return ctx.JSON(http.StatusConflict, existThread)
 	}
-	return ctx.JSON(err.Code, err.Message)
+	return ctx.JSON(err.Code, err)
 }
 
 func (handler *Handler) Get(ctx echo.Context) error {

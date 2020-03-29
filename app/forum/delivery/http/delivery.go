@@ -36,14 +36,15 @@ func (handler *Handler) Create(ctx echo.Context) error {
 		}
 		return ctx.JSON(http.StatusConflict, existForum)
 	}
-	return ctx.NoContent(err.Code)
+	return ctx.JSON(err.Code, err)
 }
 
 func (handler *Handler) Get(ctx echo.Context) error {
 	slug := ctx.Param("slug")
 	frm := handler.useCase.GetBySlug(slug)
 	if frm == nil {
-		return ctx.NoContent(http.StatusNotFound)
+		err := models.CreateNotFoundForum(slug)
+		return ctx.JSON(err.Code, err)
 	}
 	return ctx.JSON(http.StatusOK, frm)
 }

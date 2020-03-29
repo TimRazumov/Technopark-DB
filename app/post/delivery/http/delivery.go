@@ -29,7 +29,7 @@ func (handler *Handler) Create(ctx echo.Context) error {
 	}
 	err := handler.useCase.Create(thrdKey, &posts)
 	if err != nil {
-		return ctx.JSON(err.Code, err.Message)
+		return ctx.JSON(err.Code, err)
 	}
 	return ctx.JSON(http.StatusCreated, posts)
 }

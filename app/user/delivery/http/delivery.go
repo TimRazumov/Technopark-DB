@@ -25,9 +25,8 @@ func CreateHandler(router *echo.Echo, useCase user.UseCase) {
 }
 
 func (handler *Handler) Create(ctx echo.Context) error {
-	// TODO: проверить будет ли пустым, если сразу записать ник
 	usr := models.User{NickName: ctx.Param("nickname")}
-	if err := ctx.Bind(&usr); err != nil || !nickNamePattern.MatchString(usr.NickName)  {
+	if err := ctx.Bind(&usr); err != nil || !nickNamePattern.MatchString(usr.NickName) {
 		return ctx.NoContent(http.StatusBadRequest)
 	}
 	err := handler.useCase.Create(usr)
@@ -52,12 +51,13 @@ func (handler *Handler) Create(ctx echo.Context) error {
 
 func (handler *Handler) Get(ctx echo.Context) error {
 	nickName := ctx.Param("nickname")
+	err := models.CreateNotFoundUser(nickName)
 	if !nickNamePattern.MatchString(nickName) {
-		return ctx.NoContent(http.StatusNotFound)
+		return ctx.JSON(err.Code, err)
 	}
 	usr := handler.useCase.GetByNickName(nickName)
 	if usr == nil {
-		return ctx.NoContent(http.StatusNotFound)
+		return ctx.JSON(err.Code, err)
 	}
 	return ctx.JSON(http.StatusOK, usr)
 }
@@ -71,7 +71,7 @@ func (handler *Handler) Update(ctx echo.Context) error {
 	usr.NickName = nickName
 	err := handler.useCase.Update(&usr)
 	if err != nil {
-		return ctx.NoContent(err.Code)
+		return ctx.JSON(err.Code, err)
 	}
 	return ctx.JSON(http.StatusOK, usr)
 }

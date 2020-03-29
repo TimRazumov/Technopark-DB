@@ -18,11 +18,11 @@ func CreateUseCase(userRepo user.Repository, forumRepo forum.Repository) forum.U
 
 func (useCase *UseCase) Create(frm *models.Forum) *models.Error {
 	if frm == nil {
-		return &models.Error{Code: http.StatusNotFound}
+		return &models.Error{Code: http.StatusInternalServerError}
 	}
 	usr := useCase.userRepo.GetByNickName(frm.User)
 	if usr == nil {
-		return &models.Error{Code: http.StatusNotFound}
+		return models.CreateNotFoundUser(frm.User)
 	}
 	frm.User = usr.NickName // не совпадает регистр букв
 	return useCase.forumRepo.Create(*frm)

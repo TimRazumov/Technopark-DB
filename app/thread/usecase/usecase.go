@@ -26,12 +26,12 @@ func (useCase *UseCase) Create(thrd *models.Thread) *models.Error {
 	}
 	frm := useCase.forumRepo.GetBySlug(thrd.Forum)
 	if frm == nil {
-		return &models.Error{Code: http.StatusNotFound}
+		return models.CreateNotFoundForumThread(thrd.Forum)
 	}
 	thrd.Forum = frm.Slug
 	usr := useCase.userRepo.GetByNickName(thrd.Author)
 	if usr == nil {
-		return &models.Error{Code: http.StatusNotFound}
+		return models.CreateNotFoundAuthorThread(thrd.Author)
 	}
 	thrd.Author = usr.NickName
 	return useCase.threadRepo.Create(thrd)
