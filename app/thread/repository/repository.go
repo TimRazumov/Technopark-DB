@@ -1,9 +1,12 @@
 package repository
 
 import (
+	"github.com/lib/pq"
+	"net/http"
+	"strconv"
+
 	"github.com/TimRazumov/Technopark-DB/app/models"
 	"github.com/TimRazumov/Technopark-DB/app/thread"
-	"net/http"
 
 	"github.com/jackc/pgx"
 )
@@ -90,7 +93,7 @@ func (repository *Repository) Update(newThrd *models.Thread) *models.Error {
 		realThrd = repository.GetBySlug(newThrd.Slug)
 	}
 	if realThrd == nil {
-		return &models.Error{Code: http.StatusNotFound}
+		return models.CreateNotFoundAuthorPost(newThrd.Slug)
 	}
 	newTitle := newThrd.Title
 	newMessage := newThrd.Message
@@ -143,4 +146,94 @@ func (repository *Repository) UpdateVote(vt models.Vote) *models.Error {
 		return &models.Error{Code: http.StatusInternalServerError}
 	}
 	return nil
+}
+
+func (repository *Repository) GetPostsByThread(thrd models.Thread, options models.QueryString) *[]models.Post {
+	var res *pgx.Rows
+	var err error
+	if options.Sort == "flat" {
+		sinceCond := ""
+		if options.Since != "" {
+			sinceCond = " AND id "
+			if options.Desc {
+				sinceCond += "< "
+			} else {
+				sinceCond += "> "
+			}
+			sinceCond += options.Since
+		}
+		descCond := " ORDER BY id"
+		if options.Desc {
+			descCond += " DESC"
+		}
+		limitCond := ""
+		if options.Limit > 0 {
+			limitCond += " LIMIT " + strconv.Itoa(options.Limit)
+		}
+		res, err = repository.DB.Query(`SELECT * FROM posts WHERE thread = $1`+sinceCond+descCond+limitCond, thrd.ID)
+	} else if options.Sort == "tree" {
+		sinceCond := ""
+		if options.Since != "" {
+			sinceCond = " AND path "
+			if options.Desc {
+				sinceCond += "< "
+			} else {
+				sinceCond += "> "
+			}
+			sinceCond += "(SELECT path FROM posts WHERE id = " + options.Since + ")"
+		}
+		descCond := " ORDER BY"
+		if options.Desc {
+			descCond += " path DESC, id DESC"
+		} else {
+			descCond += " path, id"
+		}
+		limitCond := ""
+		if options.Limit > 0 {
+			limitCond += " LIMIT " + strconv.Itoa(options.Limit)
+		}
+		res, err = repository.DB.Query(`SELECT * FROM posts WHERE thread = $1`+sinceCond+descCond+limitCond, thrd.ID)
+	} else if options.Sort == "parent_tree" {
+		sinceCond := ""
+		if options.Since != "" {
+			sinceCond = " AND path[1] "
+			if options.Desc {
+				sinceCond += "< "
+			} else {
+				sinceCond += "> "
+			}
+			sinceCond += "(SELECT path[1] FROM posts WHERE id = " + options.Since + ")"
+		}
+		descCondIn := " ORDER BY id"
+		descCondOut := " ORDER BY"
+		if options.Desc {
+			descCondIn += " DESC"
+			descCondOut += " path[1] DESC, path, id"
+		} else {
+			descCondOut += " path"
+		}
+		limitCond := ""
+		if options.Limit > 0 {
+			limitCond += " LIMIT " + strconv.Itoa(options.Limit)
+		}
+		res, err = repository.DB.Query("SELECT * FROM posts WHERE path[1] IN"+
+			" (SELECT id FROM posts WHERE thread = $1 AND parent = 0"+sinceCond+descCondIn+limitCond+")"+descCondOut, thrd.ID)
+	} else {
+		return nil
+	}
+	if err != nil {
+		return nil
+	}
+	defer res.Close()
+	psts := make([]models.Post, 0)
+	for res.Next() {
+		var tmpPost models.Post
+		err = res.Scan(&tmpPost.ID, &tmpPost.Parent, &tmpPost.Author, &tmpPost.Message, &tmpPost.IsEdited,
+			&tmpPost.Forum, &tmpPost.Thread, &tmpPost.Created, pq.Array(&tmpPost.Path))
+		if err != nil {
+			return nil
+		}
+		psts = append(psts, tmpPost)
+	}
+	return &psts
 }

@@ -8,4 +8,5 @@ type Repository interface {
 	GetBySlug(slug string) *models.Thread
 	Update(newThrd *models.Thread) *models.Error
 	UpdateVote(vt models.Vote) *models.Error
+	GetPostsByThread(thrd models.Thread, queryString models.QueryString) *[]models.Post
 }

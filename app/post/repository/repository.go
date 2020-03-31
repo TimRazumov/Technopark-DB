@@ -43,7 +43,7 @@ func (repository *Repository) Create(thrd models.Thread, posts *[]models.Post) *
 		return &models.Error{Code: http.StatusNotFound}
 	}
 	defer postRows.Close()
-	var postsID []int
+	postsID := make([]int, 0)
 	for postRows.Next() {
 		var id int
 		err = postRows.Scan(&id)

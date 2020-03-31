@@ -65,3 +65,16 @@ func (useCase *UseCase) UpdateVote(thrdKey string, vt models.Vote) *models.Threa
 	}
 	return useCase.threadRepo.GetByID(thrd.ID)
 }
+
+func (useCase *UseCase) GetPostsBySlugOrID(thrdKey string, queryString models.QueryString) *[]models.Post {
+	var thrd *models.Thread
+	if id, err := strconv.Atoi(thrdKey); err == nil {
+		thrd = useCase.GetByID(id)
+	} else {
+		thrd = useCase.GetBySlug(thrdKey)
+	}
+	if thrd == nil {
+		return nil
+	}
+	return useCase.threadRepo.GetPostsByThread(*thrd, queryString)
+}

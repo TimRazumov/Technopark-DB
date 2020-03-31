@@ -8,4 +8,5 @@ type UseCase interface {
 	GetBySlug(slug string) *models.Thread
 	Update(newThrd *models.Thread) *models.Error
 	UpdateVote(thrdKey string, vt models.Vote) *models.Thread
+	GetPostsBySlugOrID(thrdKey string, queryString models.QueryString) *[]models.Post
 }

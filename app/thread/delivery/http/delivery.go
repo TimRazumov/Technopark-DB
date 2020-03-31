@@ -22,6 +22,7 @@ func CreateHandler(router *echo.Echo, useCase thread.UseCase) {
 	router.GET("api/thread/:slug_or_id/details", handler.Get)
 	router.POST("api/thread/:slug_or_id/details", handler.Update)
 	router.POST("api/thread/:slug_or_id/vote", handler.UpdateVote)
+	router.GET("api/thread/:slug_or_id/posts", handler.GetPosts)
 }
 
 func (handler *Handler) Create(ctx echo.Context) error {
@@ -51,7 +52,8 @@ func (handler *Handler) Get(ctx echo.Context) error {
 		thrd = handler.useCase.GetBySlug(thrdKey)
 	}
 	if thrd == nil {
-		return ctx.JSON(http.StatusNotFound, "")
+		err := models.CreateNotFoundAuthorPost(thrdKey)
+		return ctx.JSON(err.Code, err)
 	}
 	return ctx.JSON(http.StatusOK, thrd)
 }
@@ -70,7 +72,7 @@ func (handler *Handler) Update(ctx echo.Context) error {
 	}
 	err := handler.useCase.Update(&thrd)
 	if err != nil {
-		return ctx.JSON(err.Code, err.Message)
+		return ctx.JSON(err.Code, err)
 	}
 	return ctx.JSON(http.StatusOK, thrd)
 }
@@ -83,7 +85,22 @@ func (handler *Handler) UpdateVote(ctx echo.Context) error {
 	}
 	thrd := handler.useCase.UpdateVote(thrdKey, vt)
 	if thrd == nil {
-		return ctx.JSON(http.StatusNotFound, "")
+		err := models.CreateNotFoundAuthorPost(thrdKey)
+		return ctx.JSON(err.Code, err)
 	}
 	return ctx.JSON(http.StatusOK, thrd)
+}
+
+func (handler *Handler) GetPosts(ctx echo.Context) error {
+	queryString := models.CreateQueryString()
+	if err := ctx.Bind(&queryString); err != nil {
+		return ctx.NoContent(http.StatusBadRequest)
+	}
+	thrdKey := ctx.Param("slug_or_id")
+	psts := handler.useCase.GetPostsBySlugOrID(thrdKey, queryString)
+	if psts == nil {
+		err := models.CreateNotFoundForum(thrdKey)
+		return ctx.JSON(err.Code, err)
+	}
+	return ctx.JSON(http.StatusOK, psts)
 }
