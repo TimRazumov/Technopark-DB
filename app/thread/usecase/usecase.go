@@ -5,7 +5,6 @@ import (
 	"github.com/TimRazumov/Technopark-DB/app/models"
 	"github.com/TimRazumov/Technopark-DB/app/thread"
 	"github.com/TimRazumov/Technopark-DB/app/user"
-	"log"
 	"net/http"
 	"strconv"
 )
@@ -64,6 +63,5 @@ func (useCase *UseCase) UpdateVote(thrdKey string, vt models.Vote) *models.Threa
 	if err != nil {
 		return nil
 	}
-	log.Println("found", vt.NickName)
 	return useCase.threadRepo.GetByID(thrd.ID)
 }

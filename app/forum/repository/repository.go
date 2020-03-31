@@ -1,12 +1,11 @@
 package repository
 
 import (
-	"net/http"
-
 	"github.com/TimRazumov/Technopark-DB/app/forum"
 	"github.com/TimRazumov/Technopark-DB/app/models"
-
 	"github.com/jackc/pgx"
+	"net/http"
+	"strconv"
 )
 
 type Repository struct {
@@ -41,4 +40,78 @@ func (repository *Repository) GetBySlug(slug string) *models.Forum {
 		return nil
 	}
 	return &frm
+}
+
+func (repository *Repository) GetUsersBySlug(slug string, queryString models.QueryString) *[]models.User {
+	sinceCond := ``
+	if queryString.Since != "" {
+		sinceCond = ` AND nickname `
+		if queryString.Desc {
+			sinceCond += `< `
+		} else {
+			sinceCond += `> `
+		}
+		sinceCond += `'` + queryString.Since + `'`
+	}
+	sortCond := ` ORDER BY nickname`
+	if queryString.Desc {
+		sortCond += ` DESC`
+	}
+	limitCond := ``
+	if queryString.Limit > 0 {
+		limitCond += ` LIMIT ` + strconv.Itoa(queryString.Limit)
+	}
+	res, err := repository.DB.Query(`SELECT nickname, fullname, email, about FROM users`+
+		` JOIN user_forum USING(nickname) WHERE slug = $1`+sinceCond+sortCond+limitCond, slug)
+	if err != nil {
+		return nil
+	}
+	defer res.Close()
+	usrs := make([]models.User, 0)
+	for res.Next() {
+		var tmpUser models.User
+		err = res.Scan(&tmpUser.NickName, &tmpUser.FullName, &tmpUser.Email, &tmpUser.About)
+		if err != nil {
+			return nil
+		}
+		usrs = append(usrs, tmpUser)
+	}
+	return &usrs
+}
+
+func (repository *Repository) GetThreadsBySlug(slug string, queryString models.QueryString) *[]models.Thread {
+	sinceCond := ``
+	if queryString.Since != "" {
+		sinceCond = ` AND created `
+		if queryString.Desc {
+			sinceCond += `<= `
+		} else {
+			sinceCond += `>= `
+		}
+		sinceCond += `'` + queryString.Since + `'`
+	}
+	sortCond := ` ORDER BY created`
+	if queryString.Desc {
+		sortCond += ` DESC`
+	}
+	limitCond := ``
+	if queryString.Limit > 0 {
+		limitCond += ` LIMIT ` + strconv.Itoa(queryString.Limit)
+	}
+	res, err := repository.DB.Query(`SELECT * FROM threads WHERE forum = $1`+sinceCond+sortCond+limitCond, slug)
+	if err != nil {
+		return nil
+	}
+	defer res.Close()
+	thrd := make([]models.Thread, 0)
+	for res.Next() {
+		var tmpThrd models.Thread
+		err = res.Scan(&tmpThrd.ID, &tmpThrd.Title, &tmpThrd.Author, &tmpThrd.Forum,
+			&tmpThrd.Message, &tmpThrd.Votes, &tmpThrd.Slug, &tmpThrd.Created)
+		if err != nil {
+			return nil
+		}
+		thrd = append(thrd, tmpThrd)
+	}
+	return &thrd
 }

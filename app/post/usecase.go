@@ -6,4 +6,6 @@ import (
 
 type UseCase interface {
 	Create(thrdKey string, pst *[]models.Post) *models.Error
+	GetByID(id int, options models.Related) *models.PostGet
+	Update(pst *models.Post) *models.Error
 }

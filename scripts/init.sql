@@ -7,59 +7,82 @@ drop table if exists threads cascade;
 drop table if exists posts cascade;
 drop table if exists votes cascade;
 
-create unlogged table users
+create table users
 (
-    nickname citext    not null primary key,
+    nickname citext    not null primary key collate "C",
     fullname text      not null,
-    email    citext    not null unique,
+    email    citext    not null unique collate "C",
     about    text
 );
 
-create unlogged table forums
+create table forums
 (
-    slug    citext    not null primary key,
+    slug    citext    not null primary key collate "C",
     title   text      not null,
-    usr     citext    not null references users (nickname),
+    usr     citext    not null references users (nickname) collate "C",
     posts   integer   not null default 0,
     threads integer   not null default 0
 );
 
-create unlogged table user_forum
+create table user_forum
 (
-    nickname  citext not null references users (nickname),
-    slug      citext not null references forums (slug),
+    nickname  citext not null references users (nickname) collate "C",
+    slug      citext not null references forums (slug) collate "C",
     unique    (nickname, slug)
 );
 
-create unlogged table threads
+create table threads
 (
     id         serial      not null primary key,
     title      text        not null,
-    author     citext      not null references users (nickname),
-    forum      citext      not null references forums (slug),
+    author     citext      not null references users (nickname) collate "C",
+    forum      citext      not null references forums (slug) collate "C",
     message    text,
     votes      integer     default 0,
-    slug       citext      default null unique,   
+    slug       citext      default null unique collate "C",   
     created    timestamptz default current_timestamp
 );
 
-create unlogged table posts
+create table posts
 (
     id         serial         not null primary key,
     parent     integer        not null default 0,
-    author     citext         not null references users (nickname),
+    author     citext         not null references users (nickname) collate "C",
     message    text,
     is_edited  bool           not null default false,
-    forum      citext         not null references forums (slug),
+    forum      citext         not null references forums (slug) collate "C",
     thread     integer        not null references threads (id),
     created    timestamptz    default current_timestamp,
     path       integer[]      default array[]::integer[]
 );
 
-create unlogged table votes
+create table votes
 (
-    nickname citext   not null references users (nickname),
+    nickname citext   not null references users (nickname) collate "C",
     voice    smallint check (voice in (-1, 1)),
     thread   integer  not null references threads (id),
     unique (nickname, thread)
 );
+
+create or replace function insert_user_forum() returns trigger as
+$$
+begin
+    insert into user_forum (nickname, slug) values (new.author, new.forum)
+    on conflict do nothing;
+    return new;
+end;
+$$ language plpgsql;
+
+create trigger insert_forum_user_trigger after insert on threads
+for each row execute procedure insert_user_forum();
+
+create or replace function thread_counter() returns trigger as
+$$
+begin
+   update forums set threads = threads + 1 where slug = new.forum;
+   return new;
+end;
+$$ language plpgsql;
+
+create trigger thread_counter_trigger after insert on threads
+for each row execute procedure thread_counter();

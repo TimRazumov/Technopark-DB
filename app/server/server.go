@@ -66,7 +66,7 @@ func (server *Server) Run() {
 	usrUseCase := userUseCase.CreateUseCase(usrRepo)
 	frmUseCase := forumUseCase.CreateUseCase(usrRepo, frmRepo)
 	thrdUseCase := threadUseCase.CreateUseCase(usrRepo, frmRepo, thrdRepo)
-	pstUseCase := postUseCase.CreateUseCase(thrdRepo, pstRepo)
+	pstUseCase := postUseCase.CreateUseCase(usrRepo, frmRepo, thrdRepo, pstRepo)
 	servUseCase := serviceUseCase.CreateUseCase(servRepo)
 	// delivery
 	userHandler.CreateHandler(router, usrUseCase)

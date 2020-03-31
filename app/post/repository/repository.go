@@ -20,7 +20,7 @@ func CreateRepository(db *pgx.ConnPool) post.Repository {
 }
 
 func (repository *Repository) Create(thrd models.Thread, posts *[]models.Post) *models.Error {
-	if posts == nil || len(*posts) == 0 {
+	if posts == nil {
 		return &models.Error{Code: http.StatusInternalServerError}
 	}
 	transact, err := repository.DB.Begin()
@@ -97,4 +97,28 @@ func (repository *Repository) GetByID(id int) *models.Post {
 		return nil
 	}
 	return &pst
+}
+
+func (repository *Repository) Update(pst *models.Post) *models.Error {
+	if pst == nil {
+		return &models.Error{Code: http.StatusInternalServerError}
+	}
+	realPst := repository.GetByID(pst.ID)
+	if realPst == nil {
+		return &models.Error{Code: http.StatusNotFound}
+	}
+	if pst.Message == "" || pst.Message == realPst.Message {
+		*pst = *realPst
+		return nil
+	}
+	message := pst.Message
+	*pst = *realPst
+	pst.Message = message
+	pst.IsEdited = true
+	_, err := repository.DB.Exec("UPDATE posts SET message = $1, is_edited = $2 WHERE id = $3",
+		pst.Message, pst.IsEdited, pst.ID)
+	if err != nil {
+		return &models.Error{Code: http.StatusInternalServerError}
+	}
+	return nil
 }

@@ -19,6 +19,8 @@ func CreateHandler(router *echo.Echo, useCase forum.UseCase) {
 	}
 	router.POST("api/forum/create", handler.Create)
 	router.GET("api/forum/:slug/details", handler.Get)
+	router.GET("api/forum/:slug/users", handler.GetUsers)
+	router.GET("api/forum/:slug/threads", handler.GetThreads)
 }
 
 func (handler *Handler) Create(ctx echo.Context) error {
@@ -47,4 +49,32 @@ func (handler *Handler) Get(ctx echo.Context) error {
 		return ctx.JSON(err.Code, err)
 	}
 	return ctx.JSON(http.StatusOK, frm)
+}
+
+func (handler *Handler) GetUsers(ctx echo.Context) error {
+	queryString := models.CreateQueryString()
+	if err := ctx.Bind(&queryString); err != nil {
+		return ctx.NoContent(http.StatusBadRequest)
+	}
+	slug := ctx.Param("slug")
+	usrs := handler.useCase.GetUsersBySlug(slug, queryString)
+	if usrs == nil {
+		err := models.CreateNotFoundForum(slug)
+		return ctx.JSON(err.Code, err)
+	}
+	return ctx.JSON(http.StatusOK, usrs)
+}
+
+func (handler *Handler) GetThreads(ctx echo.Context) error {
+	queryString := models.CreateQueryString()
+	if err := ctx.Bind(&queryString); err != nil {
+		return ctx.NoContent(http.StatusBadRequest)
+	}
+	slug := ctx.Param("slug")
+	thrds := handler.useCase.GetThreadsBySlug(slug, queryString)
+	if thrds == nil {
+		err := models.CreateNotFoundForum(slug)
+		return ctx.JSON(err.Code, err)
+	}
+	return ctx.JSON(http.StatusOK, thrds)
 }

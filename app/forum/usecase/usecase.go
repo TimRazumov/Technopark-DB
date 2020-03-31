@@ -31,3 +31,17 @@ func (useCase *UseCase) Create(frm *models.Forum) *models.Error {
 func (useCase *UseCase) GetBySlug(slug string) *models.Forum {
 	return useCase.forumRepo.GetBySlug(slug)
 }
+
+func (useCase *UseCase) GetUsersBySlug(slug string, queryString models.QueryString) *[]models.User {
+	if useCase.GetBySlug(slug) == nil {
+		return nil
+	}
+	return useCase.forumRepo.GetUsersBySlug(slug, queryString)
+}
+
+func (useCase *UseCase) GetThreadsBySlug(slug string, queryString models.QueryString) *[]models.Thread {
+	if useCase.GetBySlug(slug) == nil {
+		return nil
+	}
+	return useCase.forumRepo.GetThreadsBySlug(slug, queryString)
+}
