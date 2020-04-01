@@ -9,6 +9,7 @@ import (
 	"github.com/TimRazumov/Technopark-DB/app/thread"
 
 	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/pgtype"
 )
 
 type Repository struct {
@@ -55,10 +56,12 @@ func (repository *Repository) GetByID(id int) *models.Thread {
 		return nil
 	}
 	var thrd models.Thread
-	err = res.Scan(&thrd.ID, &thrd.Title, &thrd.Author, &thrd.Forum, &thrd.Message, &thrd.Votes, &thrd.Slug, &thrd.Created)
+	nullSlug := &pgtype.Varchar{}
+	err = res.Scan(&thrd.ID, &thrd.Title, &thrd.Author, &thrd.Forum, &thrd.Message, &thrd.Votes, nullSlug, &thrd.Created)
 	if err != nil {
 		return nil
 	}
+	thrd.Slug = nullSlug.String
 	return &thrd
 }
 

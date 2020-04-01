@@ -23,11 +23,6 @@ func (repository *Repository) Create(thrd models.Thread, posts *[]models.Post) *
 	if posts == nil {
 		return &models.Error{Code: http.StatusInternalServerError}
 	}
-	transact, err := repository.DB.Begin()
-	if err != nil {
-		return &models.Error{Code: http.StatusInternalServerError}
-	}
-	defer transact.Rollback()
 	parents := make(map[int]models.Post)
 	for _, pst := range *posts {
 		if _, has := parents[pst.Parent]; !has && pst.Parent != 0 {
@@ -38,7 +33,7 @@ func (repository *Repository) Create(thrd models.Thread, posts *[]models.Post) *
 			parents[pst.Parent] = *parentPost
 		}
 	}
-	postRows, err := transact.Query(`SELECT nextval(pg_get_serial_sequence('posts', 'id')) FROM generate_series(1, $1)`, len(*posts))
+	postRows, err := repository.DB.Query(`SELECT nextval(pg_get_serial_sequence('posts', 'id')) FROM generate_series(1, $1)`, len(*posts))
 	if err != nil {
 		return &models.Error{Code: http.StatusNotFound}
 	}
@@ -63,19 +58,16 @@ func (repository *Repository) Create(thrd models.Thread, posts *[]models.Post) *
 		pst.Created = timeNow
 		pst.Path = append(parents[pst.Parent].Path, int64(postsID[idx]))
 		(*posts)[idx] = pst
-		res, err := transact.Exec(`INSERT INTO posts (id, parent, author, message, forum, thread, created, path) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		res, err := repository.DB.Exec(`INSERT INTO posts (id, parent, author, message, forum, thread, created, path) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 			pst.ID, pst.Parent, pst.Author, pst.Message, pst.Forum, pst.Thread, pst.Created, pq.Array(pst.Path))
 		if err != nil || res.RowsAffected() == 0 {
 			return models.CreateNotFoundAuthorPost(pst.Author)
 		}
-		_, err = transact.Exec(`INSERT INTO user_forum (nickname, slug) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+		_, _ = repository.DB.Exec(`INSERT INTO user_forum (nickname, slug) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
 			pst.Author, thrd.Forum)
-		if err != nil {
-			return &models.Error{Code: http.StatusInternalServerError}
-		}
 	}
-	res, err := transact.Exec(`UPDATE forums SET posts = posts + $1 WHERE slug = $2`, len(*posts), thrd.Forum)
-	if err != nil || res.RowsAffected() == 0 || transact.Commit() != nil {
+	res, err := repository.DB.Exec(`UPDATE forums SET posts = posts + $1 WHERE slug = $2`, len(*posts), thrd.Forum)
+	if err != nil || res.RowsAffected() == 0 {
 		return &models.Error{Code: http.StatusInternalServerError}
 	}
 	return nil

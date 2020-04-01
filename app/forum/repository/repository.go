@@ -4,6 +4,7 @@ import (
 	"github.com/TimRazumov/Technopark-DB/app/forum"
 	"github.com/TimRazumov/Technopark-DB/app/models"
 	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/pgtype"
 	"net/http"
 	"strconv"
 )
@@ -106,11 +107,13 @@ func (repository *Repository) GetThreadsBySlug(slug string, queryString models.Q
 	thrd := make([]models.Thread, 0)
 	for res.Next() {
 		var tmpThrd models.Thread
+		nullSlug := &pgtype.Varchar{}
 		err = res.Scan(&tmpThrd.ID, &tmpThrd.Title, &tmpThrd.Author, &tmpThrd.Forum,
-			&tmpThrd.Message, &tmpThrd.Votes, &tmpThrd.Slug, &tmpThrd.Created)
+			&tmpThrd.Message, &tmpThrd.Votes, nullSlug, &tmpThrd.Created)
 		if err != nil {
 			return nil
 		}
+		tmpThrd.Slug = nullSlug.String
 		thrd = append(thrd, tmpThrd)
 	}
 	return &thrd
