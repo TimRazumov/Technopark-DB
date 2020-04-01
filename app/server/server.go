@@ -52,7 +52,7 @@ func (server *Server) Run() {
 	postgeClient, err := pgx.NewConnPool(
 		pgx.ConnPoolConfig{
 			ConnConfig:     config,
-			MaxConnections: 55,
+			MaxConnections: 100,
 		})
 	if err != nil {
 		log.Fatal(err)
