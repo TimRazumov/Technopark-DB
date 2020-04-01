@@ -1,6 +1,8 @@
 package main
 
-import "github.com/TimRazumov/Technopark-DB/app/server"
+import (
+	"github.com/TimRazumov/Technopark-DB/app/server"
+)
 
 func main() {
 	srv := server.Server{

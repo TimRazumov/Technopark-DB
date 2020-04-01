@@ -50,7 +50,11 @@ func (repository *Repository) Create(thrd models.Thread, posts *[]models.Post) *
 	if len(postsID) != len(*posts) {
 		return &models.Error{Code: http.StatusInternalServerError}
 	}
-	timeNow := time.Now()
+	// timeNow := time.Now()
+	timeNow, err := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+	if err != nil {
+		return &models.Error{Code: http.StatusInternalServerError}
+	}
 	for idx, pst := range *posts {
 		pst.ID = postsID[idx]
 		pst.Forum = thrd.Forum
