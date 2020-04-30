@@ -14,6 +14,8 @@ create table users
     email    citext    not null unique collate "C",
     about    text
 );
+create index if not exists idx_users_nickname on users using hash (nickname);
+create index if not exists idx_users_email on users using hash (nickname);
 
 create table forums
 (
@@ -23,6 +25,7 @@ create table forums
     posts   integer   not null default 0,
     threads integer   not null default 0
 );
+create index if not exists idx_forum_user on forums (usr);
 
 create table user_forum
 (
@@ -30,6 +33,7 @@ create table user_forum
     slug      citext not null references forums (slug) collate "C",
     unique    (nickname, slug)
 );
+create index if not exists idx_users_forum_nickname_slug on user_forum (nickname, slug);
 
 create table threads
 (
@@ -39,9 +43,12 @@ create table threads
     forum      citext      not null references forums (slug) collate "C",
     message    text,
     votes      integer     default 0,
-    slug       citext      default null unique collate "C",   
+    slug       citext      default null unique collate "C",
     created    timestamptz default current_timestamp
 );
+create index if not exists idx_threads_slug on threads (slug);
+create index if not exists idx_threads_forum on threads (forum);
+create index if not exists idx_threads_author on threads (author);
 
 create table posts
 (
@@ -55,6 +62,12 @@ create table posts
     created    timestamptz    default current_timestamp,
     path       integer[]      default array[]::integer[]
 );
+create index if not exists idx_posts_id on posts (id);
+create index if not exists idx_posts_path on posts (path);
+create index if not exists idx_posts_path_1 on posts ((path [1]));
+create index if not exists idx_posts_thread on posts (thread);
+create index if not exists idx_posts_author on posts (author);
+create index if not exists idx_posts_forum on posts (forum);
 
 create table votes
 (
@@ -63,6 +76,7 @@ create table votes
     thread   integer  not null references threads (id),
     unique (nickname, thread)
 );
+create index if not exists idx_votes_nickname_thread on votes (nickname, thread);
 
 create or replace function insert_user_forum() returns trigger as
 $$
