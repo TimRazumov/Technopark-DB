@@ -5,33 +5,36 @@ import (
 
 	"github.com/TimRazumov/Technopark-DB/app/service"
 
-	"github.com/labstack/echo"
+	"github.com/buaazp/fasthttprouter"
+	"github.com/valyala/fasthttp"
 )
 
 type Handler struct {
 	useCase service.UseCase
 }
 
-func CreateHandler(router *echo.Echo, useCase service.UseCase) {
+func CreateHandler(router *fasthttprouter.Router, useCase service.UseCase) {
 	handler := &Handler{
 		useCase: useCase,
 	}
-	router.GET("api/service/status", handler.Get)
-	router.POST("api/service/clear", handler.Clear)
+	router.GET("/api/service/status", handler.Get)
+	router.POST("/api/service/clear", handler.Clear)
 }
 
-func (handler *Handler) Get(ctx echo.Context) error {
+func (handler *Handler) Get(ctx *fasthttp.RequestCtx) {
 	stat := handler.useCase.Get()
 	if stat == nil {
-		ctx.NoContent(http.StatusInternalServerError)
+		ctx.SetStatusCode(http.StatusInternalServerError)
+		return
 	}
-	return ctx.JSON(http.StatusOK, stat)
+	res, _ := stat.MarshalJSON()
+	ctx.SetBody(res)
 }
 
-func (handler *Handler) Clear(ctx echo.Context) error {
+func (handler *Handler) Clear(ctx *fasthttp.RequestCtx) {
 	err := handler.useCase.Clear()
 	if err != nil {
-		ctx.NoContent(err.Code)
+		ctx.SetStatusCode(err.Code)
+		return
 	}
-	return ctx.NoContent(http.StatusOK)
 }

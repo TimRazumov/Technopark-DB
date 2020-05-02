@@ -14,8 +14,8 @@ create table users
     email    citext    not null unique collate "C",
     about    text
 );
-create index if not exists idx_users_nickname on users using hash (nickname);
-create index if not exists idx_users_email on users using hash (nickname);
+create index if not exists idx_users_nickname on users (nickname);
+create index if not exists idx_users_email on users (nickname);
 
 create table forums
 (

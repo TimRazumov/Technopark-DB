@@ -7,3 +7,6 @@ type Forum struct {
 	Posts   int    `json:"posts,omitempty"`
 	Threads int    `json:"threads,omitempty"`
 }
+
+//easyjson:json
+type Forums []Forum

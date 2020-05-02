@@ -10,6 +10,11 @@ type Error struct {
 	Message string `json:"message"`
 }
 
+func (err *Error) GetMessage() []byte {
+	mess, _ := err.MarshalJSON()
+	return mess
+}
+
 func CreateNotFoundUser(nickName string) *Error {
 	return &Error{
 		Code:    http.StatusNotFound,

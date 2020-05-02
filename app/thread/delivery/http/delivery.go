@@ -7,44 +7,55 @@ import (
 	"github.com/TimRazumov/Technopark-DB/app/models"
 	"github.com/TimRazumov/Technopark-DB/app/thread"
 
-	"github.com/labstack/echo"
+	"github.com/buaazp/fasthttprouter"
+	"github.com/valyala/fasthttp"
 )
 
 type Handler struct {
 	useCase thread.UseCase
 }
 
-func CreateHandler(router *echo.Echo, useCase thread.UseCase) {
+func CreateHandler(router *fasthttprouter.Router, useCase thread.UseCase) {
 	handler := &Handler{
 		useCase: useCase,
 	}
-	router.POST("api/forum/:slug/create", handler.Create)
-	router.GET("api/thread/:slug_or_id/details", handler.Get)
-	router.POST("api/thread/:slug_or_id/details", handler.Update)
-	router.POST("api/thread/:slug_or_id/vote", handler.UpdateVote)
-	router.GET("api/thread/:slug_or_id/posts", handler.GetPosts)
+	router.POST("/api/forum/:slug/create", handler.Create)
+	router.GET("/api/thread/:slug_or_id/details", handler.Get)
+	router.POST("/api/thread/:slug_or_id/details", handler.Update)
+	router.POST("/api/thread/:slug_or_id/vote", handler.UpdateVote)
+	router.GET("/api/thread/:slug_or_id/posts", handler.GetPosts)
 }
 
-func (handler *Handler) Create(ctx echo.Context) error {
-	thrd := models.Thread{Forum: ctx.Param("slug")}
-	if err := ctx.Bind(&thrd); err != nil {
-		return ctx.NoContent(http.StatusBadRequest)
+func (handler *Handler) Create(ctx *fasthttp.RequestCtx) {
+	var thrd models.Thread
+	if err := thrd.UnmarshalJSON(ctx.PostBody()); err != nil {
+		ctx.SetStatusCode(http.StatusBadRequest)
+		return
 	}
+	thrd.Forum = ctx.UserValue("slug").(string)
 	err := handler.useCase.Create(&thrd)
 	if err == nil {
-		return ctx.JSON(http.StatusCreated, thrd)
+		res, _ := thrd.MarshalJSON()
+		ctx.SetStatusCode(http.StatusCreated)
+		ctx.SetBody(res)
+		return
 	} else if err.Code == http.StatusConflict {
 		existThread := handler.useCase.GetBySlug(thrd.Slug)
 		if existThread == nil {
-			return ctx.NoContent(http.StatusInternalServerError)
+			ctx.SetStatusCode(http.StatusInternalServerError)
+			return
 		}
-		return ctx.JSON(http.StatusConflict, existThread)
+		res, _ := existThread.MarshalJSON()
+		ctx.SetStatusCode(http.StatusConflict)
+		ctx.SetBody(res)
+		return
 	}
-	return ctx.JSON(err.Code, err)
+	ctx.SetStatusCode(err.Code)
+	ctx.SetBody(err.GetMessage())
 }
 
-func (handler *Handler) Get(ctx echo.Context) error {
-	thrdKey := ctx.Param("slug_or_id")
+func (handler *Handler) Get(ctx *fasthttp.RequestCtx) {
+	thrdKey := ctx.UserValue("slug_or_id").(string)
 	var thrd *models.Thread
 	if id, err := strconv.Atoi(thrdKey); err == nil {
 		thrd = handler.useCase.GetByID(id)
@@ -53,13 +64,16 @@ func (handler *Handler) Get(ctx echo.Context) error {
 	}
 	if thrd == nil {
 		err := models.CreateNotFoundAuthorPost(thrdKey)
-		return ctx.JSON(err.Code, err)
+		ctx.SetStatusCode(err.Code)
+		ctx.SetBody(err.GetMessage())
+		return
 	}
-	return ctx.JSON(http.StatusOK, thrd)
+	res, _ := thrd.MarshalJSON()
+	ctx.SetBody(res)
 }
 
-func (handler *Handler) Update(ctx echo.Context) error {
-	thrdKey := ctx.Param("slug_or_id")
+func (handler *Handler) Update(ctx *fasthttp.RequestCtx) {
+	thrdKey := ctx.UserValue("slug_or_id").(string)
 	var thrd models.Thread
 	if id, err := strconv.Atoi(thrdKey); err == nil {
 		thrd.ID = id
@@ -67,40 +81,48 @@ func (handler *Handler) Update(ctx echo.Context) error {
 		thrd.ID = -1
 		thrd.Slug = thrdKey
 	}
-	if err := ctx.Bind(&thrd); err != nil {
-		return ctx.NoContent(http.StatusBadRequest)
+	if err := thrd.UnmarshalJSON(ctx.PostBody()); err != nil {
+		ctx.SetStatusCode(http.StatusBadRequest)
+		return
 	}
 	err := handler.useCase.Update(&thrd)
 	if err != nil {
-		return ctx.JSON(err.Code, err)
+		ctx.SetStatusCode(err.Code)
+		ctx.SetBody(err.GetMessage())
+		return
 	}
-	return ctx.JSON(http.StatusOK, thrd)
+	res, _ := thrd.MarshalJSON()
+	ctx.SetBody(res)
 }
 
-func (handler *Handler) UpdateVote(ctx echo.Context) error {
-	thrdKey := ctx.Param("slug_or_id")
+func (handler *Handler) UpdateVote(ctx *fasthttp.RequestCtx) {
+	thrdKey := ctx.UserValue("slug_or_id").(string)
 	var vt models.Vote
-	if err := ctx.Bind(&vt); err != nil || vt.Voice*vt.Voice != 1 {
-		return ctx.NoContent(http.StatusBadRequest)
+	if err := vt.UnmarshalJSON(ctx.PostBody()); err != nil || vt.Voice*vt.Voice != 1 {
+		ctx.SetStatusCode(http.StatusBadRequest)
+		return
 	}
 	thrd := handler.useCase.UpdateVote(thrdKey, vt)
 	if thrd == nil {
 		err := models.CreateNotFoundAuthorPost(thrdKey)
-		return ctx.JSON(err.Code, err)
+		ctx.SetStatusCode(err.Code)
+		ctx.SetBody(err.GetMessage())
+		return
 	}
-	return ctx.JSON(http.StatusOK, thrd)
+	res, _ := thrd.MarshalJSON()
+	ctx.SetBody(res)
 }
 
-func (handler *Handler) GetPosts(ctx echo.Context) error {
-	queryString := models.CreateQueryString()
-	if err := ctx.Bind(&queryString); err != nil {
-		return ctx.NoContent(http.StatusBadRequest)
-	}
-	thrdKey := ctx.Param("slug_or_id")
+func (handler *Handler) GetPosts(ctx *fasthttp.RequestCtx) {
+	queryString := models.CreateQueryString(ctx.URI().QueryArgs())
+	thrdKey := ctx.UserValue("slug_or_id").(string)
 	psts := handler.useCase.GetPostsBySlugOrID(thrdKey, queryString)
 	if psts == nil {
 		err := models.CreateNotFoundForum(thrdKey)
-		return ctx.JSON(err.Code, err)
+		ctx.SetStatusCode(err.Code)
+		ctx.SetBody(err.GetMessage())
+		return
 	}
-	return ctx.JSON(http.StatusOK, psts)
+	res, _ := psts.MarshalJSON()
+	ctx.SetBody(res)
 }

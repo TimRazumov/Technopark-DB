@@ -12,3 +12,6 @@ type Thread struct {
 	Slug    string    `json:"slug,omitempty"`
 	Created time.Time `json:"created,omitempty"`
 }
+
+//easyjson:json
+type Threads []Thread

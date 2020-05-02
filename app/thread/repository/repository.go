@@ -151,7 +151,7 @@ func (repository *Repository) UpdateVote(vt models.Vote) *models.Error {
 	return nil
 }
 
-func (repository *Repository) GetPostsByThread(thrd models.Thread, options models.QueryString) *[]models.Post {
+func (repository *Repository) GetPostsByThread(thrd models.Thread, options models.QueryString) *models.Posts {
 	var res *pgx.Rows
 	var err error
 	if options.Sort == "flat" {
@@ -228,7 +228,7 @@ func (repository *Repository) GetPostsByThread(thrd models.Thread, options model
 		return nil
 	}
 	defer res.Close()
-	psts := make([]models.Post, 0)
+	psts := make(models.Posts, 0)
 	for res.Next() {
 		var tmpPost models.Post
 		err = res.Scan(&tmpPost.ID, &tmpPost.Parent, &tmpPost.Author, &tmpPost.Message, &tmpPost.IsEdited,

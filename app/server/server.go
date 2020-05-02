@@ -24,8 +24,9 @@ import (
 	serviceRepo "github.com/TimRazumov/Technopark-DB/app/service/repository"
 	serviceUseCase "github.com/TimRazumov/Technopark-DB/app/service/usecase"
 
+	"github.com/buaazp/fasthttprouter"
 	"github.com/jackc/pgx"
-	"github.com/labstack/echo"
+	"github.com/valyala/fasthttp"
 )
 
 type Server struct {
@@ -47,7 +48,6 @@ var config = pgx.ConnConfig{
 }
 
 func (server *Server) Run() {
-	router := echo.New()
 	//repo
 	postgeClient, err := pgx.NewConnPool(
 		pgx.ConnPoolConfig{
@@ -69,13 +69,22 @@ func (server *Server) Run() {
 	pstUseCase := postUseCase.CreateUseCase(usrRepo, frmRepo, thrdRepo, pstRepo)
 	servUseCase := serviceUseCase.CreateUseCase(servRepo)
 	// delivery
+	router := fasthttprouter.New()
 	userHandler.CreateHandler(router, usrUseCase)
-	forumHandler.CreateHandler(router, frmUseCase)
 	threadHandler.CreateHandler(router, thrdUseCase)
+	forumHandler.CreateHandler(router, frmUseCase)
 	postHandler.CreateHandler(router, pstUseCase)
 	serviceHandler.CreateHandler(router, servUseCase)
 	// start
-	if err := router.Start(server.GetAddr()); err != nil {
+	log.Println("server started on address:", server.GetAddr())
+	middleware := func(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+		return func(ctx *fasthttp.RequestCtx) {
+			ctx.Response.Header.Set("Content-Type", "application/json")
+			next(ctx)
+		}
+	}
+	err = fasthttp.ListenAndServe(server.GetAddr(), middleware(router.Handler))
+	if err != nil {
 		log.Fatal(err)
 	}
 }

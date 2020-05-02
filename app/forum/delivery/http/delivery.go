@@ -6,75 +6,88 @@ import (
 	"github.com/TimRazumov/Technopark-DB/app/forum"
 	"github.com/TimRazumov/Technopark-DB/app/models"
 
-	"github.com/labstack/echo"
+	"github.com/buaazp/fasthttprouter"
+	"github.com/valyala/fasthttp"
 )
 
 type Handler struct {
 	useCase forum.UseCase
 }
 
-func CreateHandler(router *echo.Echo, useCase forum.UseCase) {
+func CreateHandler(router *fasthttprouter.Router, useCase forum.UseCase) {
 	handler := &Handler{
 		useCase: useCase,
 	}
-	router.POST("api/forum/create", handler.Create)
-	router.GET("api/forum/:slug/details", handler.Get)
-	router.GET("api/forum/:slug/users", handler.GetUsers)
-	router.GET("api/forum/:slug/threads", handler.GetThreads)
+	router.POST("/api/forum/:slug", handler.Create)
+	router.GET("/api/forum/:slug/details", handler.Get)
+	router.GET("/api/forum/:slug/users", handler.GetUsers)
+	router.GET("/api/forum/:slug/threads", handler.GetThreads)
 }
 
-func (handler *Handler) Create(ctx echo.Context) error {
+func (handler *Handler) Create(ctx *fasthttp.RequestCtx) {
 	var frm models.Forum
-	if err := ctx.Bind(&frm); err != nil {
-		return ctx.NoContent(http.StatusBadRequest)
+	if err := frm.UnmarshalJSON(ctx.PostBody()); err != nil {
+		ctx.SetStatusCode(http.StatusBadRequest)
+		return
 	}
 	err := handler.useCase.Create(&frm)
 	if err == nil {
-		return ctx.JSON(http.StatusCreated, frm)
+		res, _ := frm.MarshalJSON()
+		ctx.SetStatusCode(http.StatusCreated)
+		ctx.SetBody(res)
+		return
 	} else if err.Code == http.StatusConflict {
 		existForum := handler.useCase.GetBySlug(frm.Slug)
 		if existForum == nil {
-			return ctx.NoContent(http.StatusInternalServerError)
+			ctx.SetStatusCode(http.StatusInternalServerError)
+			return
 		}
-		return ctx.JSON(http.StatusConflict, existForum)
+		res, _ := existForum.MarshalJSON()
+		ctx.SetStatusCode(http.StatusConflict)
+		ctx.SetBody(res)
+		return
 	}
-	return ctx.JSON(err.Code, err)
+	ctx.SetStatusCode(err.Code)
+	ctx.SetBody(err.GetMessage())
 }
 
-func (handler *Handler) Get(ctx echo.Context) error {
-	slug := ctx.Param("slug")
+func (handler *Handler) Get(ctx *fasthttp.RequestCtx) {
+	slug := ctx.UserValue("slug").(string)
 	frm := handler.useCase.GetBySlug(slug)
 	if frm == nil {
 		err := models.CreateNotFoundForum(slug)
-		return ctx.JSON(err.Code, err)
+		ctx.SetStatusCode(err.Code)
+		ctx.SetBody(err.GetMessage())
+		return
 	}
-	return ctx.JSON(http.StatusOK, frm)
+	res, _ := frm.MarshalJSON()
+	ctx.SetBody(res)
 }
 
-func (handler *Handler) GetUsers(ctx echo.Context) error {
-	queryString := models.CreateQueryString()
-	if err := ctx.Bind(&queryString); err != nil {
-		return ctx.NoContent(http.StatusBadRequest)
-	}
-	slug := ctx.Param("slug")
+func (handler *Handler) GetUsers(ctx *fasthttp.RequestCtx) {
+	queryString := models.CreateQueryString(ctx.URI().QueryArgs())
+	slug := ctx.UserValue("slug").(string)
 	usrs := handler.useCase.GetUsersBySlug(slug, queryString)
 	if usrs == nil {
 		err := models.CreateNotFoundForum(slug)
-		return ctx.JSON(err.Code, err)
+		ctx.SetStatusCode(err.Code)
+		ctx.SetBody(err.GetMessage())
+		return
 	}
-	return ctx.JSON(http.StatusOK, usrs)
+	res, _ := usrs.MarshalJSON()
+	ctx.SetBody(res)
 }
 
-func (handler *Handler) GetThreads(ctx echo.Context) error {
-	queryString := models.CreateQueryString()
-	if err := ctx.Bind(&queryString); err != nil {
-		return ctx.NoContent(http.StatusBadRequest)
-	}
-	slug := ctx.Param("slug")
+func (handler *Handler) GetThreads(ctx *fasthttp.RequestCtx) {
+	queryString := models.CreateQueryString(ctx.URI().QueryArgs())
+	slug := ctx.UserValue("slug").(string)
 	thrds := handler.useCase.GetThreadsBySlug(slug, queryString)
 	if thrds == nil {
 		err := models.CreateNotFoundForum(slug)
-		return ctx.JSON(err.Code, err)
+		ctx.SetStatusCode(err.Code)
+		ctx.SetBody(err.GetMessage())
+		return
 	}
-	return ctx.JSON(http.StatusOK, thrds)
+	res, _ := thrds.MarshalJSON()
+	ctx.SetBody(res)
 }

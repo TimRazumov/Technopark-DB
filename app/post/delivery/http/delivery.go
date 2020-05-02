@@ -1,81 +1,83 @@
 package http
 
 import (
-	"github.com/TimRazumov/Technopark-DB/app/models"
-	"github.com/TimRazumov/Technopark-DB/app/post"
-	"github.com/labstack/echo"
 	"net/http"
 	"strconv"
-	"strings"
+
+	"github.com/TimRazumov/Technopark-DB/app/models"
+	"github.com/TimRazumov/Technopark-DB/app/post"
+
+	"github.com/buaazp/fasthttprouter"
+	"github.com/valyala/fasthttp"
 )
 
 type Handler struct {
 	useCase post.UseCase
 }
 
-func CreateHandler(router *echo.Echo, useCase post.UseCase) {
+func CreateHandler(router *fasthttprouter.Router, useCase post.UseCase) {
 	handler := &Handler{
 		useCase: useCase,
 	}
-	router.POST("api/thread/:slug_or_id/create", handler.Create)
-	router.GET("api/post/:id/details", handler.Get)
-	router.POST("api/post/:id/details", handler.Update)
+	router.POST("/api/thread/:slug_or_id/create", handler.Create)
+	router.GET("/api/post/:id/details", handler.Get)
+	router.POST("/api/post/:id/details", handler.Update)
 }
 
-func (handler *Handler) Create(ctx echo.Context) error {
-	thrdKey := ctx.Param("slug_or_id")
-	var posts []models.Post
-	if err := ctx.Bind(&posts); err != nil {
-		return ctx.NoContent(http.StatusBadRequest)
+func (handler *Handler) Create(ctx *fasthttp.RequestCtx) {
+	thrdKey := ctx.UserValue("slug_or_id").(string)
+	posts := models.Posts{}
+	if err := posts.UnmarshalJSON(ctx.PostBody()); err != nil {
+		ctx.SetStatusCode(http.StatusBadRequest)
+		return
 	}
 	err := handler.useCase.Create(thrdKey, &posts)
 	if err != nil {
-		return ctx.JSON(err.Code, err)
+		ctx.SetStatusCode(err.Code)
+		ctx.SetBody(err.GetMessage())
+		return
 	}
-	return ctx.JSON(http.StatusCreated, posts)
+	res, _ := posts.MarshalJSON()
+	ctx.SetStatusCode(http.StatusCreated)
+	ctx.SetBody(res)
 }
 
-func (handler *Handler) Get(ctx echo.Context) error {
-	id, err := strconv.Atoi(ctx.Param("id"))
+func (handler *Handler) Get(ctx *fasthttp.RequestCtx) {
+	id, err := strconv.Atoi(ctx.UserValue("id").(string))
 	if err != nil {
-		return ctx.NoContent(http.StatusBadRequest)
+		ctx.SetStatusCode(http.StatusBadRequest)
+		return
 	}
-	var options models.Related
-	query := strings.Split(ctx.QueryParam("related"), ",")
-	for _, param := range query {
-		if param == "user" {
-			options.User = true
-			continue
-		}
-		if param == "forum" {
-			options.Forum = true
-			continue
-		}
-		if param == "thread" {
-			options.Thread = true
-			continue
-		}
-	}
+	options := models.CreateRelated(ctx.URI().QueryArgs())
 	pst := handler.useCase.GetByID(id, options)
 	if pst == nil {
-		return ctx.JSON(http.StatusNotFound, nil)
+		err := models.CreateNotFoundThreadPost(id)
+		ctx.SetStatusCode(err.Code)
+		ctx.SetBody(err.GetMessage())
+		return
 	}
-	return ctx.JSON(http.StatusOK, pst)
+	res, _ := pst.MarshalJSON()
+	ctx.SetBody(res)
 }
 
-func (handler *Handler) Update(ctx echo.Context) error {
-	id, er := strconv.Atoi(ctx.Param("id"))
+func (handler *Handler) Update(ctx *fasthttp.RequestCtx) {
+	id, er := strconv.Atoi(ctx.UserValue("id").(string))
 	if er != nil {
-		return ctx.NoContent(http.StatusBadRequest)
+		ctx.SetStatusCode(http.StatusBadRequest)
+		return
 	}
 	var pst models.Post
-	if err := ctx.Bind(&pst); err != nil {
-		return ctx.NoContent(http.StatusBadRequest)
+	if err := pst.UnmarshalJSON(ctx.PostBody()); err != nil {
+		ctx.SetStatusCode(http.StatusBadRequest)
+		return
 	}
 	pst.ID = id
 	err := handler.useCase.Update(&pst)
 	if err != nil {
-		return ctx.JSON(err.Code, err)
+		ctx.SetStatusCode(err.Code)
+		ctx.SetBody(err.GetMessage())
+		return
 	}
-	return ctx.JSON(http.StatusOK, pst)
+	res, _ := pst.MarshalJSON()
+	ctx.SetBody(res)
 }

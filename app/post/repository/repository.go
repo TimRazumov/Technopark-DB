@@ -19,7 +19,7 @@ func CreateRepository(db *pgx.ConnPool) post.Repository {
 	return &Repository{DB: db}
 }
 
-func (repository *Repository) Create(thrd models.Thread, posts *[]models.Post) *models.Error {
+func (repository *Repository) Create(thrd models.Thread, posts *models.Posts) *models.Error {
 	if posts == nil {
 		return &models.Error{Code: http.StatusInternalServerError}
 	}

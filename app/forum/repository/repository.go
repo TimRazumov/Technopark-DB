@@ -43,7 +43,7 @@ func (repository *Repository) GetBySlug(slug string) *models.Forum {
 	return &frm
 }
 
-func (repository *Repository) GetUsersBySlug(slug string, queryString models.QueryString) *[]models.User {
+func (repository *Repository) GetUsersBySlug(slug string, queryString models.QueryString) *models.Users {
 	sinceCond := ``
 	if queryString.Since != "" {
 		sinceCond = ` AND nickname `
@@ -68,7 +68,7 @@ func (repository *Repository) GetUsersBySlug(slug string, queryString models.Que
 		return nil
 	}
 	defer res.Close()
-	usrs := make([]models.User, 0)
+	usrs := make(models.Users, 0)
 	for res.Next() {
 		var tmpUser models.User
 		err = res.Scan(&tmpUser.NickName, &tmpUser.FullName, &tmpUser.Email, &tmpUser.About)
@@ -80,7 +80,7 @@ func (repository *Repository) GetUsersBySlug(slug string, queryString models.Que
 	return &usrs
 }
 
-func (repository *Repository) GetThreadsBySlug(slug string, queryString models.QueryString) *[]models.Thread {
+func (repository *Repository) GetThreadsBySlug(slug string, queryString models.QueryString) *models.Threads {
 	sinceCond := ``
 	if queryString.Since != "" {
 		sinceCond = ` AND created `
@@ -104,7 +104,7 @@ func (repository *Repository) GetThreadsBySlug(slug string, queryString models.Q
 		return nil
 	}
 	defer res.Close()
-	thrd := make([]models.Thread, 0)
+	thrd := make(models.Threads, 0)
 	for res.Next() {
 		var tmpThrd models.Thread
 		nullSlug := &pgtype.Varchar{}

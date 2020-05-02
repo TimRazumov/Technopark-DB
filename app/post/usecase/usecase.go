@@ -27,7 +27,7 @@ func CreateUseCase(userRepo user.Repository, forumRepo forum.Repository,
 		postRepo:   postRepo}
 }
 
-func (useCase *UseCase) Create(thrdKey string, posts *[]models.Post) *models.Error {
+func (useCase *UseCase) Create(thrdKey string, posts *models.Posts) *models.Error {
 	if posts == nil {
 		return &models.Error{Code: http.StatusInternalServerError}
 	}

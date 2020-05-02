@@ -5,3 +5,6 @@ type Vote struct {
 	Voice    int    `json:"voice"`
 	Thread   int    `json:"thread,omitempty"`
 }
+
+//easyjson:json
+type Votes []Vote
