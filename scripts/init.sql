@@ -47,8 +47,8 @@ create table threads
     created    timestamptz default current_timestamp
 );
 create index if not exists idx_threads_slug on threads (slug);
-create index if not exists idx_threads_forum on threads (forum);
-create index if not exists idx_threads_author on threads (author);
+create index if not exists idx_threads_forum_created on threads (forum, created);
+create index if not exists idx_threads_author on threads (author, forum);
 
 create table posts
 (
@@ -62,12 +62,14 @@ create table posts
     created    timestamptz    default current_timestamp,
     path       integer[]      default array[]::integer[]
 );
-create index if not exists idx_posts_id on posts (id);
+create index if not exists idx_posts_path_id on posts (id, (path [1]));
 create index if not exists idx_posts_path on posts (path);
 create index if not exists idx_posts_path_1 on posts ((path [1]));
+create index if not exists idx_posts_thread_id on posts (thread, id);
 create index if not exists idx_posts_thread on posts (thread);
-create index if not exists idx_posts_author on posts (author);
-create index if not exists idx_posts_forum on posts (forum);
+create index if not exists idx_posts_thread_path_id on posts (thread, path, id);
+create index if not exists idx_posts_thread_id_path_parent on posts (thread, id, (path[1]), parent);
+create index if not exists idx_posts_author_forum on posts (author, forum);
 
 create table votes
 (
