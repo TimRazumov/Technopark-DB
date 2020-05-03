@@ -1,9 +1,10 @@
 package repository
 
 import (
+	"net/http"
+
 	"github.com/TimRazumov/Technopark-DB/app/models"
 	"github.com/TimRazumov/Technopark-DB/app/user"
-	"net/http"
 
 	"github.com/jackc/pgx"
 )

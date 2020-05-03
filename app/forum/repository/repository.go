@@ -1,12 +1,14 @@
 package repository
 
 import (
-	"github.com/TimRazumov/Technopark-DB/app/forum"
-	"github.com/TimRazumov/Technopark-DB/app/models"
-	"github.com/jackc/pgx"
-	"github.com/jackc/pgx/pgtype"
 	"net/http"
 	"strconv"
+
+	"github.com/TimRazumov/Technopark-DB/app/forum"
+	"github.com/TimRazumov/Technopark-DB/app/models"
+
+	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/pgtype"
 )
 
 type Repository struct {

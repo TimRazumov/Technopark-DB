@@ -1,10 +1,11 @@
 package usecase
 
 import (
+	"net/http"
+
 	"github.com/TimRazumov/Technopark-DB/app/forum"
 	"github.com/TimRazumov/Technopark-DB/app/models"
 	"github.com/TimRazumov/Technopark-DB/app/user"
-	"net/http"
 )
 
 type UseCase struct {

@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"github.com/lib/pq"
 	"net/http"
 	"strconv"
 
@@ -10,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/pgtype"
+	"github.com/lib/pq"
 )
 
 type Repository struct {

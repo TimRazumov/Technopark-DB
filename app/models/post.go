@@ -1,9 +1,10 @@
 package models
 
 import (
-	"github.com/valyala/fasthttp"
 	"strings"
 	"time"
+
+	"github.com/valyala/fasthttp"
 )
 
 type Post struct {

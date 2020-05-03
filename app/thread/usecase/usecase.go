@@ -1,12 +1,13 @@
 package usecase
 
 import (
+	"net/http"
+	"strconv"
+
 	"github.com/TimRazumov/Technopark-DB/app/forum"
 	"github.com/TimRazumov/Technopark-DB/app/models"
 	"github.com/TimRazumov/Technopark-DB/app/thread"
 	"github.com/TimRazumov/Technopark-DB/app/user"
-	"net/http"
-	"strconv"
 )
 
 type UseCase struct {
