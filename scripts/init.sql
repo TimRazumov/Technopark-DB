@@ -14,8 +14,8 @@ create table users
     email    citext    not null unique collate "C",
     about    text
 );
-create index if not exists idx_users_nickname on users using hash (nickname);
-create index if not exists idx_users_email on users using hash (email);
+create index if not exists idx_users_nickname on users (nickname);
+create index if not exists idx_users_email on users (email);
 
 create table forums
 (
@@ -25,7 +25,7 @@ create table forums
     posts   integer   not null default 0,
     threads integer   not null default 0
 );
-create index if not exists idx_forum_user on forums using hash (usr);
+create index if not exists idx_forum_user on forums (usr);
 
 create table user_forum
 (
@@ -46,7 +46,7 @@ create table threads
     slug       citext      default null unique collate "C",
     created    timestamptz default current_timestamp
 );
-create index if not exists idx_threads_slug on threads using hash (slug);
+create index if not exists idx_threads_slug on threads (slug);
 create index if not exists idx_threads_forum_created on threads (forum, created);
 create index if not exists idx_threads_author on threads (author, forum);
 
