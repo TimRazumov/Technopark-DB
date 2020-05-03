@@ -1,2 +1,2 @@
 # Technopark-DB
- Course project on the course Database. Technopark
+ Project on the course Database. Technopark
